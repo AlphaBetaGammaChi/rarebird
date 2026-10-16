@@ -1,0 +1,67 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Rarebird Forecast</title>
+<link rel="stylesheet"
+      href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css">
+<link rel="stylesheet" href="styles.css">
+</head>
+<body>
+<header>
+  <h1>Rarebird Forecast</h1>
+  <div class="pickers">
+    <select id="country"><option value="">Country…</option></select>
+    <select id="sub1" disabled><option value="">State / province…</option></select>
+    <select id="sub2" disabled><option value="">County…</option></select>
+  </div>
+  <div class="meta">
+    <span id="week"></span>
+    <span id="generated"></span>
+    <label class="toggle"><input type="checkbox" id="heatToggle" checked>
+      heat</label>
+    <label class="toggle"><input type="checkbox" id="recentToggle" checked>
+      recent rarities</label>
+  </div>
+</header>
+
+<main>
+  <div id="map"></div>
+  <aside>
+    <section class="panel">
+      <h2>Where to go this week</h2>
+      <ol id="topSites" class="sites"></ol>
+    </section>
+    <section class="panel">
+      <h2>Species to watch</h2>
+      <ul id="species" class="species"></ul>
+    </section>
+    <section class="panel">
+      <h2>Recent rarities</h2>
+      <ul id="recent" class="recent"></ul>
+    </section>
+    <section class="panel note">
+      <p>Likelihood that a rarity gets <em>reported</em> at each site this
+      week, from historical notable-observation patterns, seasonality,
+      recent activity, observer effort and weather. A forecast, not a
+      promise — vagrancy is chaos with a rhythm.</p>
+    </section>
+  </aside>
+</main>
+
+<div id="legend">
+  <span>rarity likelihood</span>
+  <div class="scale">
+    <i style="background:#2c7fb0"></i><i style="background:#7fcdbb"></i>
+    <i style="background:#f0d75a"></i><i style="background:#f68a3c"></i>
+    <i style="background:#d7301f"></i>
+  </div>
+  <span class="scale-labels">low &rarr; high</span>
+</div>
+
+<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+<script src="https://unpkg.com/leaflet.heat@0.2.0/dist/leaflet-heat.js"></script>
+<script src="app.js"></script>
+</body>
+</html>

@@ -1,0 +1,61 @@
+name: Daily rarity forecast
+
+on:
+  schedule:
+    - cron: "15 5 * * *"        # ~05:15 UTC, after eBird's overnight update
+  workflow_dispatch: {}
+
+permissions:
+  contents: write
+  pages: write
+  id-token: write
+
+jobs:
+  update:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      # restore accumulated database from a repo artifact (survives between runs)
+      - name: Fetch recent notables (worldwide)
+        working-directory: pipeline
+        env:
+          EBIRD_API_KEY: ${{ secrets.EBIRD_API_KEY }}
+        run: python3 fetch_notables.py --db notables.sqlite --days 7
+
+      - name: Refresh hotspots + regions (Mondays)
+        working-directory: pipeline
+        if: github.event_name == 'workflow_dispatch' || github.run_number % 7 == 1
+        env:
+          EBIRD_API_KEY: ${{ secrets.EBIRD_API_KEY }}
+        run: python3 fetch_reference.py --db notables.sqlite
+
+      - name: Build forecast JSON
+        working-directory: pipeline
+        run: python3 build_forecasts.py --db notables.sqlite --out ../site/data
+
+      - name: Commit updated data + db
+        run: |
+          git config user.name "rarebird-bot"
+          git config user.email "actions@users.noreply.github.com"
+          git add site/data pipeline/notables.sqlite
+          git diff --cached --quiet || git commit -m "forecast update $(date -u +%Y-%m-%d)"
+          git push
+
+      - uses: actions/upload-pages-artifact@v3
+        with:
+          path: site
+
+  deploy:
+    needs: update
+    runs-on: ubuntu-latest
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    steps:
+      - id: deployment
+        uses: actions/deploy-pages@v4
