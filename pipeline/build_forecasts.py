@@ -111,9 +111,10 @@ def make_explainer(grid_dailies, fingerprints, week, bands):
     """Rule-based conditions prose for the forecast horizon."""
     if not grid_dailies:
         return ""
-    days = min(len(d.get("time", [])) for d in grid_dailies if d.get("time"))
-    if not days:
+    times = [len(d["time"]) for d in grid_dailies if d.get("time")]
+    if not times:
         return ""
+    days = min(times)
 
     per_day = []
     for i in range(days):
