@@ -9,6 +9,7 @@ Usage:
 """
 import argparse
 import sys
+import time
 
 import ebird
 import store
@@ -26,6 +27,8 @@ def main():
     expand = set(args.expand_sub2.split(",")) if args.expand_sub2 else set()
 
     country_list = ebird.countries()
+    if not country_list:
+        raise SystemExit("country list came back empty — refusing to proceed")
     for c in country_list:
         db.execute(
             "INSERT OR REPLACE INTO regions VALUES (?,?,?,?)",
@@ -75,6 +78,7 @@ def main():
         if (i + 1) % 25 == 0:
             db.commit()
             print(f"  {i + 1}/{len(targets)}")
+        time.sleep(0.25)  # be polite to the API
     db.commit()
 
     hs = db.execute("SELECT COUNT(*) FROM hotspots").fetchone()[0]

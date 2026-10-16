@@ -17,31 +17,33 @@ def api_key():
     return key
 
 
-def get(path, params=None, retries=3):
+def get(path, params=None, retries=5):
     url = BASE + path
     if params:
         qs = "&".join(f"{k}={v}" for k, v in params.items() if v is not None)
         if qs:
             url += "?" + qs
+    last_err = None
     for attempt in range(retries):
         try:
             req = urllib.request.Request(
                 url, headers={"X-eBirdApiToken": api_key()}
             )
-            with urllib.request.urlopen(req, timeout=60) as r:
+            with urllib.request.urlopen(req, timeout=90) as r:
                 return json.loads(r.read().decode("utf-8"))
         except urllib.error.HTTPError as e:
-            if e.code == 429 or e.code >= 500:
-                time.sleep(2 ** attempt * 2)
-                continue
             if e.code == 404:
                 return []
+            last_err = e
+            if e.code == 429 or e.code >= 500:
+                # eBird throttles per-minute; back off generously
+                time.sleep(min(120, 15 * 2 ** attempt))
+                continue
             raise
-        except (urllib.error.URLError, TimeoutError):
-            if attempt == retries - 1:
-                raise
+        except (urllib.error.URLError, TimeoutError) as e:
+            last_err = e
             time.sleep(2 ** attempt * 2)
-    return []
+    raise RuntimeError(f"eBird {path} failed after {retries} tries: {last_err}")
 
 
 def countries():

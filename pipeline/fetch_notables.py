@@ -63,8 +63,12 @@ def main():
         targets = args.countries.split(",")
         all_codes = {c["code"] for c in ebird.countries()}
         targets = [t for t in targets if t in all_codes]
+        if not targets:
+            raise SystemExit("no valid country codes in --countries")
     else:
         targets = [c["code"] for c in ebird.countries()]
+        if not targets:
+            raise SystemExit("country list came back empty — refusing to proceed")
 
     total = 0
     for i, cc in enumerate(targets):
