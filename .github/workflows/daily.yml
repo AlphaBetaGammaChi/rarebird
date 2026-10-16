@@ -20,16 +20,28 @@ jobs:
         with:
           python-version: "3.12"
 
-      # restore accumulated database from a repo artifact (survives between runs)
+      - name: Preflight — eBird key present?
+        id: key
+        env:
+          EBIRD_API_KEY: ${{ secrets.EBIRD_API_KEY }}
+        run: |
+          if [ -n "$EBIRD_API_KEY" ]; then
+            echo "haskey=true" >> "$GITHUB_OUTPUT"
+          else
+            echo "haskey=false" >> "$GITHUB_OUTPUT"
+            echo "::warning::EBIRD_API_KEY secret not set — building from existing data only"
+          fi
+
       - name: Fetch recent notables (worldwide)
         working-directory: pipeline
+        if: steps.key.outputs.haskey == 'true'
         env:
           EBIRD_API_KEY: ${{ secrets.EBIRD_API_KEY }}
         run: python3 fetch_notables.py --db notables.sqlite --days 7
 
       - name: Refresh hotspots + regions (weekly-ish)
         working-directory: pipeline
-        if: github.event_name == 'workflow_dispatch' || github.run_number % 7 == 1
+        if: steps.key.outputs.haskey == 'true' && (github.event_name == 'workflow_dispatch' || github.run_number % 7 == 1)
         env:
           EBIRD_API_KEY: ${{ secrets.EBIRD_API_KEY }}
         run: python3 fetch_reference.py --db notables.sqlite
