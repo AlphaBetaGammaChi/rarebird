@@ -1,5 +1,7 @@
 # Rarebird Forecast
 
+**Live site:** https://alphabetagammachi.github.io/rarebird/
+
 A daily "weather forecast" for rare birds: where a rarity is most likely
 to be *reported* on eBird in the next week, and which species to watch for.
 
