@@ -43,6 +43,16 @@ CREATE TABLE IF NOT EXISTS regions (
     rtype TEXT
 );
 
+CREATE TABLE IF NOT EXISTS predictions (
+    country TEXT NOT NULL,
+    locId TEXT NOT NULL,
+    buildDate TEXT NOT NULL,
+    horizonDays INTEGER,
+    idx INTEGER,
+    expected REAL,
+    PRIMARY KEY (country, locId, buildDate)
+);
+
 CREATE TABLE IF NOT EXISTS meta (
     k TEXT PRIMARY KEY,
     v TEXT

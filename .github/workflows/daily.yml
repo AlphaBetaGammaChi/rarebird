@@ -34,15 +34,21 @@ jobs:
           EBIRD_API_KEY: ${{ secrets.EBIRD_API_KEY }}
         run: python3 fetch_reference.py --db notables.sqlite
 
-      - name: Build forecast JSON
+      - name: Build forecast JSON + RSS feeds
         working-directory: pipeline
-        run: python3 build_forecasts.py --db notables.sqlite --out ../site/data
+        env:
+          SITE_URL: https://${{ github.repository_owner }}.github.io/${{ github.event.repository.name }}
+        run: python3 build_forecasts.py --db notables.sqlite --out ../site/data --feeds --site-url "$SITE_URL"
+
+      - name: Evaluate forecast skill
+        working-directory: pipeline
+        run: python3 evaluate.py --db notables.sqlite --out ../site/data
 
       - name: Commit updated data + db
         run: |
           git config user.name "rarebird-bot"
           git config user.email "actions@users.noreply.github.com"
-          git add site/data pipeline/notables.sqlite
+          git add site/data site/feeds pipeline/notables.sqlite
           git diff --cached --quiet || git commit -m "forecast update $(date -u +%Y-%m-%d)"
           git push
 

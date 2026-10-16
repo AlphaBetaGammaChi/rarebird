@@ -28,11 +28,28 @@ pipeline/                     stdlib-only Python, no dependencies
   fetch_notables.py           daily: recent notables, one call per country
   fetch_reference.py          weekly: hotspots + region hierarchy
   model.py                    scoring + species picks
-  build_forecasts.py          writes site/data/{CC}.json
+  build_forecasts.py          writes site/data/{CC}.json + RSS feeds
+  evaluate.py                 forecast-vs-reality skill tracking
   demo.py                     synthetic data for offline testing
 site/                         static frontend (Leaflet, no build)
+  data/                       per-country forecast JSON + calibration.json
+  feeds/                      per-country RSS weekly outlook feeds
 .github/workflows/daily.yml   collector + forecast + Pages deploy
 ```
+
+## Extras
+
+- **RSS feeds** — `feeds/{CC}.xml`, one item per weekly forecast with the
+  top 5 sites and species to watch. Subscribe per country; the site shows
+  an RSS link once a country is selected.
+- **Calibration** — every forecast is logged; `evaluate.py` checks whether
+  each scored site actually produced a notable report within 7 days and
+  publishes hit rates by score bucket to `data/calibration.json`, shown
+  in the "Forecast skill so far" panel.
+- **Life-list aware** — drop your eBird "My Data" CSV via the *Life list*
+  button; species you haven't seen get a ★ lifer badge and you can filter
+  "Species to watch" to lifers only. Stored in `localStorage`.
+- **Deep links** — `?c=GB` selects a country on load (used by feed items).
 
 The daily Action sweeps every country (~200 API calls), accumulates
 history in `pipeline/notables.sqlite` (committed back to the repo),

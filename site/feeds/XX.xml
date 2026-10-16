@@ -1,0 +1,15 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<rss version="2.0">
+<channel>
+  <title>Rarebird Forecast — XX</title>
+  <link>http://localhost:8777?c=XX</link>
+  <description>Weekly rarity likelihood outlook for XX</description>
+  <item>
+    <title>XX rarity outlook — 2026-W42</title>
+    <link>http://localhost:8777?c=XX</link>
+    <guid isPermaLink="false">rbf-XX-2026-W42</guid>
+    <pubDate>Fri, 16 Oct 2026 10:30:57 GMT</pubDate>
+    <description>1. Willow Fen — index 100<br>2. Alder Carr — index 88<br>3. Harbour Point — index 69<br>4. North Cape Point — index 66<br>5. Dunwick Cliffs — index 29<br><br>Species to watch: Sabine's Gull, Rose-coloured Starling, Great Grey Shrike, Yellow-browed Warbler, Pallas's Warbler<br><br><i>Likelihood of a rarity report this week. Full map: http://localhost:8777</i></description>
+  </item>
+</channel>
+</rss>

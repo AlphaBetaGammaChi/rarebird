@@ -17,6 +17,7 @@ import math
 import os
 import sys
 import urllib.request
+import xml.sax.saxutils as xml
 
 import model
 import store
@@ -61,6 +62,74 @@ def weather_grid(hotspots):
                 (lat0 + (lat1 - lat0) * i / 2, lng0 + (lng1 - lng0) * j / 2)
             )
     return grid
+
+
+def log_predictions(db, cc, scored):
+    """Record today's forecast for later skill evaluation."""
+    today = dt.date.today().isoformat()
+    for h in scored:
+        if h["index"] < 5:
+            break  # scored list is sorted desc; skip the long tail
+        db.execute(
+            """INSERT OR REPLACE INTO predictions
+               (country, locId, buildDate, horizonDays, idx, expected)
+               VALUES (?,?,?,?,?,?)""",
+            (cc, h["locId"], today, 7, h["index"], h["expected"]),
+        )
+
+
+def write_feed(fc, feeds_dir, site_url):
+    """RSS 2.0 item per weekly forecast."""
+    os.makedirs(feeds_dir, exist_ok=True)
+    esc = xml.escape
+    top5 = fc["top"][:5]
+    desc = "<br>".join(
+        f"{i + 1}. {esc(h['name'])} — index {h['index']}"
+        for i, h in enumerate(top5)
+    )
+    sp = ", ".join(s["species"] for s in fc["species"][:5])
+    if sp:
+        desc += f"<br><br>Species to watch: {esc(sp)}"
+    if fc.get("weatherNotes"):
+        desc += f"<br><br>Weather: {esc('; '.join(fc['weatherNotes']))}"
+    desc += (
+        f"<br><br><i>Likelihood of a rarity report this week. "
+        f"Full map: {esc(site_url)}</i>"
+    )
+    pub = dt.datetime.utcnow().strftime("%a, %d %b %Y %H:%M:%S GMT")
+    item = f"""  <item>
+    <title>{esc(fc['country'])} rarity outlook — {esc(fc['week'])}</title>
+    <link>{esc(site_url)}?c={esc(fc['country'])}</link>
+    <guid isPermaLink="false">rbf-{esc(fc['country'])}-{esc(fc['week'])}</guid>
+    <pubDate>{pub}</pubDate>
+    <description>{desc}</description>
+  </item>"""
+
+    # keep history: rewrite whole file with existing items preserved
+    path = os.path.join(feeds_dir, f"{fc['country']}.xml")
+    existing = []
+    if os.path.exists(path):
+        with open(path) as f:
+            body = f.read()
+        existing = body.split("  <item>")[1:]
+        existing = ["  <item>" + s.split("  </item>")[0] + "  </item>"
+                    for s in existing]
+        existing = [e for e in existing if f"rbf-{fc['country']}-{fc['week']}"
+                    not in e]
+    items = "\n".join([item] + existing[:12])  # ~3 months of weeks
+    name = fc["country"]
+    feed = f"""<?xml version="1.0" encoding="UTF-8"?>
+<rss version="2.0">
+<channel>
+  <title>Rarebird Forecast — {esc(name)}</title>
+  <link>{esc(site_url)}?c={esc(name)}</link>
+  <description>Weekly rarity likelihood outlook for {esc(name)}</description>
+{items}
+</channel>
+</rss>
+"""
+    with open(path, "w") as f:
+        f.write(feed)
 
 
 def build_country(db, cc, week, use_weather):
@@ -133,6 +202,10 @@ def main():
     ap.add_argument("--out", default="../site/data")
     ap.add_argument("--countries", default=None)
     ap.add_argument("--no-weather", action="store_true")
+    ap.add_argument("--site-url", default="https://example.github.io/rarebird",
+                    help="public URL, used in feed links")
+    ap.add_argument("--feeds", action="store_true",
+                    help="also write RSS feeds to {out}/../feeds")
     args = ap.parse_args()
 
     os.makedirs(args.out, exist_ok=True)
@@ -159,11 +232,16 @@ def main():
         path = os.path.join(args.out, f"{cc}.json")
         with open(path, "w") as f:
             json.dump(fc, f, separators=(",", ":"))
+        log_predictions(db, cc, fc["hotspots"])
+        if args.feeds:
+            write_feed(fc, os.path.join(os.path.dirname(args.out), "feeds"),
+                       args.site_url)
         written.append(cc)
         print(
             f"  {len(fc['hotspots'])} hotspots, {len(fc['species'])} picks, "
             f"top: {fc['top'][0]['name'] if fc['top'] else '-'}"
         )
+    db.commit()
 
     # region hierarchy for the picker
     regions = {"countries": [], "children": {}}

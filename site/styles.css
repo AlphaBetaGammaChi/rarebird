@@ -61,8 +61,30 @@ ol.sites li:last-child { border: 0; }
 
 .species li { padding: 6px 0; border-bottom: 1px solid var(--line); }
 .species li:last-child { border: 0; }
+.species li.seen { opacity: .45; }
 .species .nm { font-weight: 600; }
 .species .rs { color: var(--ink-dim); font-size: 11px; }
+.species .lifer { color: var(--accent); font-weight: 700; margin-left: 6px; }
+.lifers { font-size: 10px; font-weight: 400; text-transform: none;
+          letter-spacing: 0; float: right; cursor: pointer;
+          color: var(--ink-dim); }
+
+button, #feedLink {
+  background: var(--panel2); color: var(--ink); border: 1px solid var(--line);
+  border-radius: 6px; padding: 4px 10px; font-size: 12px; cursor: pointer;
+  text-decoration: none;
+}
+button:hover, #feedLink:hover { border-color: var(--ink-dim); }
+
+.skill-row { display: flex; align-items: center; gap: 8px;
+             font-size: 12px; margin: 3px 0; }
+.skill-row .lbl { min-width: 48px; color: var(--ink-dim); }
+.skill-row .bar { height: 10px; background: var(--panel); border-radius: 3px;
+                  flex: 1; overflow: hidden; }
+.skill-row .bar i { display: block; height: 100%; background: #7fcdbb; }
+.skill-row .val { min-width: 52px; text-align: right;
+                  font-variant-numeric: tabular-nums; }
+.skill-meta { color: var(--ink-dim); font-size: 11px; margin-bottom: 6px; }
 
 .recent li { padding: 4px 0; font-size: 12px; color: var(--ink-dim); }
 .recent .nm { color: var(--ink); }

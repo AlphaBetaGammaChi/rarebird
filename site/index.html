@@ -17,6 +17,11 @@
     <select id="sub2" disabled><option value="">County…</option></select>
   </div>
   <div class="meta">
+    <button id="lifeBtn" title="Drop your eBird 'My Data' CSV to flag lifers">
+      Life list…</button>
+    <input type="file" id="lifeFile" accept=".csv,.tsv" hidden>
+    <a id="feedLink" href="#" style="display:none" title="Weekly outlook feed">
+      RSS</a>
     <span id="week"></span>
     <span id="generated"></span>
     <label class="toggle"><input type="checkbox" id="heatToggle" checked>
@@ -34,8 +39,15 @@
       <ol id="topSites" class="sites"></ol>
     </section>
     <section class="panel">
-      <h2>Species to watch</h2>
+      <h2>Species to watch
+        <label id="liferOnlyWrap" class="lifers" style="display:none">
+          <input type="checkbox" id="liferOnly"> lifers only</label>
+      </h2>
       <ul id="species" class="species"></ul>
+    </section>
+    <section class="panel" id="skillPanel" style="display:none">
+      <h2>Forecast skill so far</h2>
+      <div id="skill"></div>
     </section>
     <section class="panel">
       <h2>Recent rarities</h2>

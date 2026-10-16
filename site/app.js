@@ -14,6 +14,8 @@ const state = {
   country: null,       // e.g. "GB"
   data: null,          // data/{CC}.json
   sub1: "", sub2: "",
+  lifers: null,        // Set of common names the user has already seen
+  lifersOnly: false,
   siteLayer: L.layerGroup().addTo(map),
   recentLayer: L.layerGroup().addTo(map),
   heat: null,
@@ -72,9 +74,12 @@ async function init() {
   });
   $("heatToggle").addEventListener("change", render);
   $("recentToggle").addEventListener("change", render);
+  initLifers();
+  loadSkill();
 
-  // restore last selection
-  const saved = localStorage.getItem("rbf.country");
+  // restore last selection (?c= deep link beats localStorage)
+  const params = new URLSearchParams(location.search);
+  const saved = params.get("c") || localStorage.getItem("rbf.country");
   if (saved && listed.some((c) => c.code === saved)) {
     $("country").value = saved;
     onCountry();
@@ -88,6 +93,9 @@ async function onCountry() {
   resetPicker($("sub1"));
   resetPicker($("sub2"));
   state.data = await loadJSON(`data/${state.country}.json`);
+
+  $("feedLink").href = `feeds/${state.country}.xml`;
+  $("feedLink").style.display = "";
 
   $("week").textContent = `forecast ${state.data.week}`;
   $("generated").textContent =
@@ -231,10 +239,18 @@ function renderPanels(spots) {
   });
 
   const d = state.data;
-  $("species").innerHTML = (d.species || []).map((s) => `
-    <li><div class="nm">${s.species}</div>
-    <div class="rs">${s.reason}</div></li>`).join("") ||
-    "<li>No notable species signal yet.</li>";
+  let species = d.species || [];
+  if (state.lifers && state.lifersOnly) {
+    species = species.filter((s) => !state.lifers.has(s.species));
+  }
+  $("species").innerHTML = species.map((s) => {
+    const seen = state.lifers && state.lifers.has(s.species);
+    return `
+    <li class="${seen ? "seen" : ""}"><div class="nm">${s.species}${
+      state.lifers && !seen ? '<span class="lifer">★ lifer</span>' : ""
+    }</div>
+    <div class="rs">${s.reason}</div></li>`;
+  }).join("") || "<li>No notable species signal yet.</li>";
 
   const rec = (d.recent || []).filter(
     (r) =>
@@ -245,6 +261,102 @@ function renderPanels(spots) {
     <li><span class="dt">${r.obsDt}</span> ·
         <span class="nm">${r.comName}</span> — ${r.locName}</li>`
   ).join("") || "<li>No recent notable reports.</li>";
+}
+
+/* ------------------------------------------------------------- lifers */
+
+function parseCSVLine(line) {
+  const cells = [];
+  let cur = "", inQ = false;
+  for (let i = 0; i < line.length; i++) {
+    const ch = line[i];
+    if (inQ) {
+      if (ch === '"') {
+        if (line[i + 1] === '"') { cur += '"'; i++; }
+        else inQ = false;
+      } else cur += ch;
+    } else if (ch === '"') inQ = true;
+    else if (ch === ",") { cells.push(cur); cur = ""; }
+    else cur += ch;
+  }
+  cells.push(cur);
+  return cells;
+}
+
+function parseLifeList(text) {
+  const names = new Set();
+  const lines = text.split(/\r?\n/).filter((l) => l.trim());
+  if (!lines.length) return names;
+  const header = parseCSVLine(lines[0]);
+  const col = header.findIndex(
+    (h) => h.trim().toLowerCase() === "common name"
+  );
+  for (const line of lines.slice(col >= 0 ? 1 : 0)) {
+    const cells = parseCSVLine(line);
+    const nm = (col >= 0 ? cells[col] : cells[0] || "").trim();
+    if (nm) names.add(nm);
+  }
+  return names;
+}
+
+function initLifers() {
+  try {
+    const saved = JSON.parse(localStorage.getItem("rbf.lifelist") || "null");
+    if (Array.isArray(saved) && saved.length) {
+      state.lifers = new Set(saved);
+    }
+  } catch {}
+  updateLiferUI();
+
+  $("lifeBtn").onclick = () => $("lifeFile").click();
+  $("lifeFile").addEventListener("change", (e) => {
+    const f = e.target.files[0];
+    if (!f) return;
+    f.text().then((text) => {
+      state.lifers = parseLifeList(text);
+      localStorage.setItem(
+        "rbf.lifelist", JSON.stringify([...state.lifers])
+      );
+      updateLiferUI();
+      if (state.data) render();
+    });
+  });
+  $("liferOnly").addEventListener("change", (e) => {
+    state.lifersOnly = e.target.checked;
+    render();
+  });
+}
+
+function updateLiferUI() {
+  if (state.lifers && state.lifers.size) {
+    $("lifeBtn").textContent = `Life list (${state.lifers.size})`;
+    $("liferOnlyWrap").style.display = "";
+  }
+}
+
+/* -------------------------------------------------------------- skill */
+
+async function loadSkill() {
+  let cal;
+  try {
+    cal = await loadJSON("data/calibration.json");
+  } catch {
+    return; // no data yet
+  }
+  if (!cal || !cal.total) return;
+  $("skillPanel").style.display = "";
+  const pct = (x) => `${(x * 100).toFixed(1)}%`;
+  $("skill").innerHTML = `
+    <div class="skill-meta">${cal.hits}/${cal.total} scored sites produced
+      a rarity report within 7 days (${pct(cal.rate)}), as of
+      ${cal.asOf}.</div>` +
+    (cal.buckets || []).map((b) => `
+      <div class="skill-row">
+        <span class="lbl">${b.label}</span>
+        <span class="bar"><i style="width:${Math.min(100, b.rate * 100)
+          }%"></i></span>
+        <span class="val">${b.hits}/${b.n}</span>
+      </div>`).join("");
 }
 
 init();
