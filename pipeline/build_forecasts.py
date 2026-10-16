@@ -46,6 +46,138 @@ def open_meteo(points):
         return [None] * len(points)
 
 
+def _coord(v):
+    if v is None:
+        return None
+    if isinstance(v, (int, float)):
+        return float(v)
+    v = str(v).strip().upper()
+    if v and v[-1] in "NSEW":
+        try:
+            f = float(v[:-1])
+            return f if v[-1] in "NE" else -f
+        except ValueError:
+            return None
+    try:
+        return float(v)
+    except ValueError:
+        return None
+
+
+def active_storms():
+    """Active tropical cyclones from NHC's CurrentStorms feed."""
+    out = []
+    try:
+        with urllib.request.urlopen(
+            "https://www.nhc.noaa.gov/CurrentStorms.json", timeout=30
+        ) as r:
+            data = json.loads(r.read().decode())
+        for s in data.get("activeStorms", []):
+            lat = _coord(s.get("latitude") or s.get("latitudeDeg"))
+            lng = _coord(s.get("longitude") or s.get("longitudeDeg"))
+            if lat is None:
+                continue
+            out.append({
+                "name": s.get("binomial") or s.get("name"),
+                "class": s.get("classification"),
+                "lat": lat, "lng": lng,
+                "basin": s.get("basin"),
+            })
+    except Exception:
+        pass
+    return out
+
+
+def storms_near(storms, hotspots, km=900):
+    """Storms whose centre is within km of the country's hotspot bbox."""
+    if not storms or not hotspots:
+        return []
+    lats = [h["lat"] for h in hotspots]
+    lngs = [h["lng"] for h in hotspots]
+    lat0, lat1, lng0, lng1 = min(lats), max(lats), min(lngs), max(lngs)
+    near = []
+    for s in storms:
+        d = min(
+            model.haversine_km(s["lat"], s["lng"], la, lo)
+            for la in (lat0, (lat0 + lat1) / 2, lat1)
+            for lo in (lng0, (lng0 + lng1) / 2, lng1)
+        )
+        if d <= km:
+            near.append(dict(s, distKm=round(d)))
+    return near
+
+
+def make_explainer(grid_dailies, fingerprints, week, bands):
+    """Rule-based conditions prose for the forecast horizon."""
+    if not grid_dailies:
+        return ""
+    days = min(len(d.get("time", [])) for d in grid_dailies if d.get("time"))
+    if not days:
+        return ""
+
+    per_day = []
+    for i in range(days):
+        spds, dirs, prc = [], [], []
+        for d in grid_dailies:
+            s = d.get("windspeed_10m_max") or []
+            dd = d.get("winddirection_10m_dominant") or []
+            p = d.get("precipitation_sum") or []
+            if i < len(s) and s[i]:
+                spds.append(s[i])
+            if i < len(dd) and dd[i] is not None:
+                dirs.append(dd[i])
+            if i < len(p) and p[i]:
+                prc.append(p[i])
+        per_day.append(
+            (
+                max(spds) if spds else 0,
+                model.dir_bin(
+                    sorted(dirs)[len(dirs) // 2] if dirs else 0
+                ),
+                max(prc) if prc else 0,
+            )
+        )
+
+    sents = []
+    peak = set()
+    for b in bands:
+        peak |= model.seasonal_peak_weeks_cache.get(b, set())
+    if week in peak:
+        sents.append("Peak rarity window for this latitude.")
+    else:
+        sents.append("Outside the main rarity window — long shots only.")
+
+    good_dirs = [
+        i + 1 for i, (_, b, _) in enumerate(per_day)
+        if b is not None and any(
+            fp[b] > 0.04 for fp in fingerprints.values()
+        )
+    ]
+    windy = [
+        (i + 1, s, b) for i, (s, b, _) in enumerate(per_day) if s >= 40
+    ]
+    wet = [i + 1 for i, (_, _, p) in enumerate(per_day) if p >= 15]
+
+    if good_dirs:
+        d0 = good_dirs[0]
+        b = per_day[d0 - 1][1]
+        sents.append(
+            f"{model.DIR_NAMES[b]} winds on day {d0} — "
+            f"historically an arrival direction here."
+        )
+    if windy:
+        d0, s, b = windy[0]
+        sents.append(
+            f"Strong {model.DIR_NAMES[b] if b is not None else ''} "
+            f"winds day {d0} ({round(s)} km/h) — displacement weather."
+        )
+    if wet:
+        sents.append(f"Rain day {wet[0]} may ground migrants.")
+    if not good_dirs and not windy and not wet:
+        sents.append("Settled weather — limited assisted arrivals.")
+    return " ".join(sents)
+
+
 def weather_grid(hotspots):
     """Up to 9 sample points spread over the country's hotspot bbox."""
     pts = [(h["lat"], h["lng"]) for h in hotspots]
@@ -137,6 +269,16 @@ def build_country(db, cc, week, use_weather):
     if not hs:
         return None
 
+    # learned arrival-wind fingerprints for this country's lat bands
+    fingerprints = {}
+    try:
+        for band, bins in db.execute(
+            "SELECT band, bins FROM fingerprints WHERE country=?", (cc,)
+        ):
+            fingerprints[band] = json.loads(bins)
+    except Exception:
+        pass
+
     # weather on a 3x3 grid over the hotspot extent
     wnotes_all = []
     weather_for = lambda lat, lng: (1.0, [])
@@ -145,8 +287,10 @@ def build_country(db, cc, week, use_weather):
         dailies = open_meteo(grid)
         point_idx = []
         for (plat, plng), daily in zip(grid, dailies):
-            idx, notes = model.weather_index(daily or {}, week, plat)
-            point_idx.append(((plat, plng), idx, notes))
+            point_idx.append(((plat, plng), daily or {}))
+            # country-level summary notes use the point's own band
+            fp = fingerprints.get(model.lat_band(plat))
+            _, notes = model.weather_index(daily or {}, week, plat, fp)
             wnotes_all.extend(notes)
 
         def weather_for(lat, lng):
@@ -154,9 +298,45 @@ def build_country(db, cc, week, use_weather):
                 point_idx,
                 key=lambda p: model.haversine_km(lat, lng, p[0][0], p[0][1]),
             )
-            return best[1], best[2]
+            fp = fingerprints.get(model.lat_band(lat))
+            return model.weather_index(best[1], week, lat, fp)
 
         hs = model.score_country(db, cc, week, weather_for)
+
+    tiers = model.rarity_tiers(db, cc)
+    model_picks = model.species_picks(db, cc, week)
+    for s in model_picks:
+        s["tier"] = tiers.get(s["code"], "scarce")
+
+    tracks = [
+        {"comName": r[0], "locName": r[1], "obsDt": r[2],
+         "path": json.loads(r[3])}
+        for r in db.execute(
+            """SELECT comName, locName, obsDt, path FROM tracks
+               WHERE country=? ORDER BY obsDt DESC LIMIT 12""",
+            (cc,),
+        )
+    ]
+    history = [
+        {"lat": r[0], "lng": r[1], "n": r[2], "d": r[3], "loc": r[4]}
+        for r in db.execute(
+            """SELECT lat, lng, comName, obsDt, locName FROM notables
+               WHERE country=? AND lat IS NOT NULL
+               ORDER BY obsDt DESC LIMIT 3000""",
+            (cc,),
+        )
+    ]
+    history.reverse()
+
+    storms = storms_near(active_storms(), hs)
+    bands = {model.lat_band(h["lat"]) for h in hs if h["lat"] is not None}
+    grid_dailies = [p[1] for p in point_idx] if use_weather else []
+    explainer = make_explainer(grid_dailies, fingerprints, week, bands)
+    if storms:
+        explainer += " " + " ".join(
+            f"{s['name']} ({s['class']}) active ~{s['distKm']}km away — "
+            f"seabird displacement possible." for s in storms
+        )
 
     week_str = dt.date.today().isocalendar()
     recent = [
@@ -184,9 +364,25 @@ def build_country(db, cc, week, use_weather):
         "week": f"{week_str[0]}-W{week_str[1]:02d}",
         "hotspots": hs[:1500],
         "top": hs[:20],
-        "species": model.species_picks(db, cc, week),
+        "species": model_picks,
+        "missing": model.species_windows(db, cc, week),
+        "gems": model.hidden_gems(db, cc),
+        "droughts": model.drought_board(db, cc),
+        "history": history,
+        "tracks": tracks,
+        "storms": storms,
+        "explainer": explainer,
         "recent": recent,
         "weatherNotes": sorted(set(wnotes_all))[:5],
+        "windFingerprint": {
+            str(band): {
+                "peakDir": model.DIR_NAMES[
+                    max(range(16), key=lambda i: bins[i])
+                ],
+                "peakResidual": round(max(bins), 3),
+            }
+            for band, bins in fingerprints.items()
+        },
         "sub1": sorted(
             {h["sub1"] for h in hs if h["sub1"]},
         ),

@@ -86,6 +86,89 @@ button:hover, #feedLink:hover { border-color: var(--ink-dim); }
                   font-variant-numeric: tabular-nums; }
 .skill-meta { color: var(--ink-dim); font-size: 11px; margin-bottom: 6px; }
 
+/* conditions explainer + storms */
+#explainer { margin: 0; font-size: 13px; }
+.storm { color: #f68a3c; font-size: 12px; margin: 6px 0 0; }
+.ext { margin: 6px 0 0; font-size: 11px; }
+.ext a { color: #7fcdbb; }
+
+/* spice slider */
+.spice-wrap input[type=range] { width: 60px; }
+
+/* species tiers + windows */
+.tier { font-size: 10px; padding: 1px 5px; border-radius: 4px;
+        margin-left: 6px; vertical-align: middle; }
+.tier.mega { background: #7f1d1d; color: #fecaca; }
+.tier.rare { background: #7c2d12; color: #fed7aa; }
+.tier.scarce { background: #365314; color: #d9f99d; }
+.tier.regular { background: #1e3a5f; color: #bfdbfe; }
+.win { color: var(--ink-dim); font-size: 11px; }
+
+h3.sub { font-size: 11px; text-transform: uppercase; letter-spacing: 1px;
+         color: var(--ink-dim); margin: 12px 0 6px; }
+
+.missing li, .gems li, .droughts li {
+  padding: 5px 0; border-bottom: 1px solid var(--line); font-size: 12px;
+}
+.missing li:last-child, .gems li:last-child, .droughts li:last-child {
+  border: 0;
+}
+.missing .st { font-size: 10px; padding: 1px 5px; border-radius: 4px;
+               margin-left: 6px; }
+.st.overdue { background: #7f1d1d; color: #fecaca; }
+.st.due-now { background: #365314; color: #d9f99d; }
+.st.due-soon { background: #334155; color: #e2e8f0; }
+.gems .rs, .droughts .rs { color: var(--ink-dim); font-size: 11px; }
+.gems li, .droughts li { cursor: pointer; }
+.gems li:hover, .droughts li:hover { background: rgba(255,255,255,.03); }
+
+/* replay bar */
+#replayBar {
+  position: absolute; bottom: 14px; left: 50%; transform: translateX(-50%);
+  z-index: 500; display: flex; align-items: center; gap: 10px;
+  background: rgba(15,20,25,.9); border: 1px solid var(--line);
+  border-radius: 8px; padding: 8px 14px;
+}
+#replayBar button {
+  font-size: 14px; padding: 2px 10px;
+}
+#replaySlider { width: 260px; }
+#replayDate { font-size: 12px; color: var(--ink-dim); min-width: 82px;
+              font-variant-numeric: tabular-nums; }
+
+/* compare */
+#compareBar {
+  position: absolute; top: 12px; left: 50%; transform: translateX(-50%);
+  z-index: 600; display: flex; gap: 8px; align-items: center;
+  background: rgba(15,20,25,.92); border: 1px solid var(--line);
+  border-radius: 8px; padding: 8px 14px; font-size: 12px;
+}
+#compareBar .chip {
+  background: var(--panel2); border: 1px solid var(--line);
+  border-radius: 12px; padding: 2px 10px;
+}
+#compareBar .chip b { cursor: pointer; margin-left: 6px;
+                      color: var(--ink-dim); }
+#compareCard {
+  position: absolute; top: 60px; left: 50%; transform: translateX(-50%);
+  z-index: 700; background: var(--panel); border: 1px solid var(--line);
+  border-radius: 10px; padding: 14px 18px; display: none;
+  box-shadow: 0 8px 30px rgba(0,0,0,.5);
+}
+#compareCard table { border-collapse: collapse; }
+#compareCard th, #compareCard td {
+  padding: 5px 12px; font-size: 12px; text-align: left;
+  border-bottom: 1px solid var(--line);
+}
+#compareCard th { color: var(--ink-dim); font-weight: 500; }
+#compareCard td:first-child { color: var(--ink-dim); }
+#compareCard .close { float: right; cursor: pointer;
+                      color: var(--ink-dim); }
+.sites .vs { cursor: pointer; color: var(--ink-dim); font-size: 10px;
+             border: 1px solid var(--line); border-radius: 4px;
+             padding: 0 4px; }
+.sites .vs.on { color: var(--accent); border-color: var(--accent); }
+
 .recent li { padding: 4px 0; font-size: 12px; color: var(--ink-dim); }
 .recent .nm { color: var(--ink); }
 .recent .dt { font-variant-numeric: tabular-nums; }

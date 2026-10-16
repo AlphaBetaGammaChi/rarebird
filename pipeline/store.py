@@ -53,6 +53,35 @@ CREATE TABLE IF NOT EXISTS predictions (
     PRIMARY KEY (country, locId, buildDate)
 );
 
+CREATE TABLE IF NOT EXISTS fingerprints (
+    region_key TEXT PRIMARY KEY,
+    country TEXT,
+    band INTEGER,
+    bins TEXT,
+    mean_speed REAL,
+    n_samples INTEGER,
+    updated TEXT
+);
+
+CREATE TABLE IF NOT EXISTS tracks (
+    subId TEXT NOT NULL,
+    speciesCode TEXT NOT NULL,
+    country TEXT,
+    comName TEXT,
+    locName TEXT,
+    obsDt TEXT,
+    path TEXT,
+    PRIMARY KEY (subId, speciesCode)
+);
+
+CREATE TABLE IF NOT EXISTS frequencies (
+    region TEXT NOT NULL,
+    species TEXT NOT NULL,
+    week INTEGER NOT NULL,
+    freq REAL,
+    PRIMARY KEY (region, species, week)
+);
+
 CREATE TABLE IF NOT EXISTS meta (
     k TEXT PRIMARY KEY,
     v TEXT

@@ -15,6 +15,11 @@ hotspot on explainable signals:
   sites report more
 - **Weather** — sustained strong winds during peak weeks, storms
   (Open-Meteo 7-day forecast)
+- **Wind fingerprints** — `fingerprints.py` learns which wind directions
+  historically preceded rarity arrivals in each country×latitude band
+  (Open-Meteo archive: 48h before each arrival vs. the local baseline).
+  Forecast days whose dominant wind matches get boosted; opposed winds
+  dampen. Shown in the header ("arrival winds: SE") and popup notes.
 
 Data comes from the eBird API's *notable observations* endpoint — the
 same feed behind rare bird alerts — plus hotspots and region lists.
@@ -30,6 +35,10 @@ pipeline/                     stdlib-only Python, no dependencies
   model.py                    scoring + species picks
   build_forecasts.py          writes site/data/{CC}.json + RSS feeds
   evaluate.py                 forecast-vs-reality skill tracking
+  fingerprints.py             weekly: learn arrival wind signatures
+  tracks.py                   weekly: back-trajectories for arrivals
+  frequency.py                optional: eBird barchart frequencies
+  notify.py                   Friday webhook digest
   demo.py                     synthetic data for offline testing
 site/                         static frontend (Leaflet, no build)
   data/                       per-country forecast JSON + calibration.json
@@ -50,6 +59,35 @@ site/                         static frontend (Leaflet, no build)
   button; species you haven't seen get a ★ lifer badge and you can filter
   "Species to watch" to lifers only. Stored in `localStorage`.
 - **Deep links** — `?c=GB` selects a country on load (used by feed items).
+- **Conditions explainer** — rule-based daily prose: "NW winds day 1 —
+  historically an arrival direction here. Rain day 3 may ground migrants."
+- **Season replay** — the history of notable arrivals plays back on the
+  map (slider/play control at the bottom).
+- **Back-trajectories** — `tracks.py` integrates 100m-level archive winds
+  backward for 72h per recent arrival; shown as dashed "origin fan"
+  polylines (toggle: tracks).
+- **Missing birds** — species inside their historic arrival window (or
+  past median first-date) but not yet reported this year.
+- **Underwatched gems** — sites surrounded by rarity reports but with low
+  observer effort: "55 rarities within 50km but only 135 species here".
+- **Drought board** — days since the last notable per county/state.
+- **Head-to-head** — "vs" chips on the top list, Compare for a side-by-
+  side card.
+- **Share card** — one-click copy of a text weekend outlook.
+- **Speculation slider** — "spice" in the header re-weights the weather
+  and recent-activity factors live (conservative ↔ spicy).
+- **Rarity tiers** — mega / rare / scarce / regular badges on species
+  picks, from reports-per-year in accumulated history. Optional deeper
+  tiers via `frequency.py` (eBird barchart data — undocumented endpoint,
+  off by default; enable with repo var `FREQUENCY_REGIONS=GB,US`).
+- **Storm watch** — active tropical cyclones near a country surface as a
+  warning line (NHC feed).
+- **Webhook digest** — set secrets `DIGEST_WEBHOOK` (+ repo var
+  `DIGEST_COUNTRIES`) and Fridays post a Discord/Slack outlook.
+- **External links** — BirdCast dashboard (US), Trektellen counts
+  (Europe) link-outs. Direct ingest was evaluated: BirdCast's data is
+  embedded in a fragile JS payload and Trektellen has no public API, so
+  they link out rather than scrape.
 
 The daily Action sweeps every country (~200 API calls), accumulates
 history in `pipeline/notables.sqlite` (committed back to the repo),

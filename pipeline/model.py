@@ -80,14 +80,25 @@ def seasonal_multiplier(tables, lat, week):
 
 # ------------------------------------------------------------------- weather
 
-def weather_index(daily, week, lat):
+DIR_NAMES = ["N", "NNE", "NE", "ENE", "E", "ESE", "SE", "SSE",
+             "S", "SSW", "SW", "WSW", "W", "WNW", "NW", "NNW"]
+
+
+def dir_bin(deg):
+    return int(((deg % 360) + 11.25) / 22.5) % 16 if deg is not None else None
+
+
+def weather_index(daily, week, lat, fingerprint=None):
     """Vagrancy-weather index from Open-Meteo daily forecast.
 
     Strong sustained winds during a location's peak rarity weeks boost the
-    score (displacement pushes vagrants); heavy storms add a small bump.
+    score; heavy storms add a bump. When a learned arrival fingerprint is
+    supplied, days whose dominant wind matches a historically favorable
+    direction get an additional boost (and opposed winds dampen slightly).
     Returns (mean_index, [per-day notes]).
     """
     speeds = daily.get("windspeed_10m_max") or []
+    dirs = daily.get("winddirection_10m_dominant") or []
     precip = daily.get("precipitation_sum") or []
     if not speeds:
         return 1.0, []
@@ -99,10 +110,18 @@ def weather_index(daily, week, lat):
     idx_days, notes = [], []
     for i, spd in enumerate(speeds):
         wind_boost = min(0.6, (spd or 0) / 60.0) * peak_factor
+        if fingerprint and i < len(dirs):
+            b = dir_bin(dirs[i])
+            if b is not None:
+                fp = fingerprint[b]
+                wind_boost += max(-0.25, min(0.5, fp * 4.0))
+                if fp > 0.04:
+                    notes.append(
+                        f"favorable {DIR_NAMES[b]} winds day {i + 1}"
+                    )
         storm_boost = 0.15 if (precip and (precip[i] or 0) > 15) else 0.0
-        idx = 1.0 + wind_boost + storm_boost
-        idx_days.append(idx)
-        if wind_boost > 0.3:
+        idx_days.append(1.0 + wind_boost + storm_boost)
+        if wind_boost > 0.3 and not fingerprint:
             notes.append(f"strong winds day {i + 1}")
         if storm_boost:
             notes.append(f"storm day {i + 1}")
@@ -315,3 +334,198 @@ def species_picks(db, country, week, limit=12):
         )
     picks.sort(key=lambda p: -p["score"])
     return picks[:limit]
+
+
+# ----------------------------------------------------- windows & missing
+
+def week_label(week):
+    d = dt.date(2001, 1, 1) + dt.timedelta(weeks=week - 1)
+    return d.strftime("%b %d")
+
+
+def species_windows(db, country, week, limit=15):
+    """Per-species expected arrival windows + 'missing birds' detector.
+
+    A species is 'due/overdue' when this week is inside its historic
+    window (or past its median first-arrival week) but nothing has been
+    reported in the country this calendar year.
+    """
+    this_year = dt.date.today().year
+    hist = defaultdict(list)   # sp -> [(year, week)]
+    names = {}
+    for sp, com, od in db.execute(
+        """SELECT speciesCode, comName, obsDt FROM notables
+           WHERE country=?""",
+        (country,),
+    ):
+        d = parse_obsdt(od)
+        hist[sp].append((d.year, iso_week(d)))
+        names[sp] = com
+
+    out = []
+    for sp, recs in hist.items():
+        if len(recs) < 3:
+            continue
+        wc = defaultdict(int)
+        firsts = {}
+        for y, w in recs:
+            wc[w] += 1
+            firsts[y] = min(firsts.get(y, 99), w)
+        peak = max(wc.values())
+        win = sorted(w for w, c in wc.items() if c >= peak * 0.3)
+        if not win:
+            continue
+        prior_years = [w for y, w in firsts.items() if y < this_year]
+        med_first = (
+            sorted(prior_years)[len(prior_years) // 2] if prior_years
+            else None
+        )
+        seen_this_year = any(y == this_year for y, _ in recs)
+        in_window = win[0] <= week <= win[-1]
+        overdue = bool(
+            med_first and week >= med_first and not seen_this_year
+        )
+        due_soon = not in_window and win[0] - week in range(1, 4)
+        if not (in_window or overdue or due_soon):
+            continue
+        out.append(
+            {
+                "species": names[sp],
+                "code": sp,
+                "window": f"{week_label(win[0])} – {week_label(win[-1])}",
+                "medianFirst": week_label(med_first) if med_first else None,
+                "overdue": overdue,
+                "status": (
+                    "overdue" if overdue
+                    else "due now" if in_window
+                    else "due soon"
+                ),
+                "records": len(recs),
+            }
+        )
+    out.sort(key=lambda x: (not x["overdue"], x["status"] != "due now",
+                            -x["records"]))
+    return out[:limit]
+
+
+# ------------------------------------------------------------- discovery
+
+def drought_board(db, country, limit=12):
+    """Days since the last notable per sub-region. Longest first."""
+    today = dt.date.today()
+    names = {
+        r[0]: r[1]
+        for r in db.execute("SELECT code, name FROM regions")
+    }
+    # bare columns beside MAX() come from the max row (SQLite feature)
+    rows = db.execute(
+        """SELECT COALESCE(sub2, sub1) AS rg, comName, MAX(obsDt)
+           FROM notables WHERE country=? GROUP BY rg""",
+        (country,),
+    ).fetchall()
+    rows = [(r[0], r[2], r[1]) for r in rows]  # rg, last, species
+    # also include sub-regions that have NEVER had a notable (from hotspots)
+    ever = {r[0] for r in rows}
+    for (rg,) in db.execute(
+        """SELECT DISTINCT COALESCE(sub2, sub1) FROM hotspots
+           WHERE country=? AND COALESCE(sub2, sub1) IS NOT NULL""",
+        (country,),
+    ):
+        if rg and rg not in ever:
+            rows.append((rg, None, None))
+
+    board = []
+    for rg, last, sp in rows:
+        if not rg:
+            continue
+        days = (
+            (today - parse_obsdt(last)).days if last else None
+        )
+        board.append(
+            {
+                "code": rg,
+                "name": names.get(rg, rg),
+                "days": days,
+                "lastSpecies": sp,
+                "lastDate": last,
+            }
+        )
+    board.sort(key=lambda b: (b["days"] is None, -(b["days"] or 10 ** 6)))
+    return board[:limit]
+
+
+def hidden_gems(db, country, limit=10):
+    """Sites that look like they should produce rarities (many notables
+    nearby) but are lightly watched (low effort proxy)."""
+    rows = candidate_hotspots(db, country, limit=4000)
+    all_n = db.execute(
+        "SELECT lat, lng, locId FROM notables WHERE country=? AND lat IS NOT NULL",
+        (country,),
+    ).fetchall()
+    grid = defaultdict(list)
+    for lat, lng, locid in all_n:
+        grid[(int(lat), int(lng))].append((lat, lng, locid))
+
+    max_eff = max((r[6] or 0) for r in rows) or 1
+    gems = []
+    for r in rows:
+        (locid, name, lat, lng, sub1, sub2, nsp, latest, notable_n,
+         last) = r
+        if lat is None:
+            continue
+        nearby = 0
+        own = 0
+        for cl in range(int(lat) - 1, int(lat) + 2):
+            for cg in range(int(lng) - 1, int(lng) + 2):
+                for rlat, rlng, rloc in grid.get((cl, cg), ()):
+                    d = haversine_km(lat, lng, rlat, rlng)
+                    if d <= 50:
+                        nearby += 1
+                        if rloc == locid:
+                            own += 1
+        neighbor = nearby - own
+        if neighbor < 3:
+            continue
+        eff = math.log1p(nsp or 0) / math.log1p(max_eff)
+        score = math.log1p(neighbor) * (1.0 - 0.85 * eff)
+        gems.append(
+            {
+                "locId": locid, "name": name,
+                "lat": round(lat, 4), "lng": round(lng, 4),
+                "nearby": neighbor, "numSpecies": nsp or 0,
+                "own": own, "score": round(score, 2),
+                "reason": f"{neighbor} rarities within 50km but only "
+                          f"{nsp or 0} species recorded here",
+            }
+        )
+    gems.sort(key=lambda g: -g["score"])
+    return gems[:limit]
+
+
+# --------------------------------------------------------------- tiers
+
+def rarity_tiers(db, country):
+    """Species -> reports/year tier from our own notable history:
+    mega <1/yr, rare <4/yr, scarce <15/yr, else regular."""
+    first = db.execute(
+        "SELECT MIN(obsDt) FROM notables WHERE country=?", (country,)
+    ).fetchone()[0]
+    years = max(
+        0.5,
+        (dt.date.today() - parse_obsdt(first)).days / 365.25
+        if first else 0.5,
+    )
+    tiers = {}
+    for sp, n in db.execute(
+        """SELECT speciesCode, COUNT(*) FROM notables
+           WHERE country=? GROUP BY speciesCode""",
+        (country,),
+    ):
+        rpy = n / years
+        tiers[sp] = (
+            "mega" if rpy < 1
+            else "rare" if rpy < 4
+            else "scarce" if rpy < 15
+            else "regular"
+        )
+    return tiers

@@ -22,18 +22,40 @@
     <input type="file" id="lifeFile" accept=".csv,.tsv" hidden>
     <a id="feedLink" href="#" style="display:none" title="Weekly outlook feed">
       RSS</a>
+    <span id="fp" title="Learned: which wind directions historically
+      preceded rarity arrivals here"></span>
     <span id="week"></span>
     <span id="generated"></span>
     <label class="toggle"><input type="checkbox" id="heatToggle" checked>
       heat</label>
     <label class="toggle"><input type="checkbox" id="recentToggle" checked>
       recent rarities</label>
+    <label class="toggle"><input type="checkbox" id="trackToggle">
+      tracks</label>
+    <label class="toggle spice-wrap" title="Slide right for bolder,
+      weather/recency-driven picks">spice
+      <input type="range" id="spice" min="0" max="100" value="50"></label>
+    <button id="compareBtn" title="Compare up to 3 sites">Compare</button>
+    <button id="shareBtn" title="Copy a weekend outlook card">Share</button>
   </div>
 </header>
 
 <main>
   <div id="map"></div>
+  <div id="replayBar" style="display:none">
+    <button id="playBtn" title="Replay the season">&#9654;</button>
+    <input type="range" id="replaySlider" min="0" max="100" value="100">
+    <span id="replayDate"></span>
+  </div>
+  <div id="compareBar" style="display:none"></div>
+  <div id="compareCard"></div>
   <aside>
+    <section class="panel" id="explainerPanel" style="display:none">
+      <h2>Conditions</h2>
+      <p id="explainer"></p>
+      <p id="stormLine" class="storm"></p>
+      <p id="extLinks" class="ext"></p>
+    </section>
     <section class="panel">
       <h2>Where to go this week</h2>
       <ol id="topSites" class="sites"></ol>
@@ -44,6 +66,16 @@
           <input type="checkbox" id="liferOnly"> lifers only</label>
       </h2>
       <ul id="species" class="species"></ul>
+      <h3 class="sub">Missing birds</h3>
+      <ul id="missing" class="missing"></ul>
+    </section>
+    <section class="panel" id="gemsPanel" style="display:none">
+      <h2>Underwatched gems</h2>
+      <ul id="gems" class="gems"></ul>
+    </section>
+    <section class="panel" id="droughtPanel" style="display:none">
+      <h2>Drought board</h2>
+      <ul id="droughts" class="droughts"></ul>
     </section>
     <section class="panel" id="skillPanel" style="display:none">
       <h2>Forecast skill so far</h2>

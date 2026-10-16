@@ -27,12 +27,29 @@ jobs:
           EBIRD_API_KEY: ${{ secrets.EBIRD_API_KEY }}
         run: python3 fetch_notables.py --db notables.sqlite --days 7
 
-      - name: Refresh hotspots + regions (Mondays)
+      - name: Refresh hotspots + regions (weekly-ish)
         working-directory: pipeline
         if: github.event_name == 'workflow_dispatch' || github.run_number % 7 == 1
         env:
           EBIRD_API_KEY: ${{ secrets.EBIRD_API_KEY }}
         run: python3 fetch_reference.py --db notables.sqlite
+
+      - name: Learn arrival wind fingerprints (weekly-ish)
+        working-directory: pipeline
+        if: github.event_name == 'workflow_dispatch' || github.run_number % 7 == 1
+        run: python3 fingerprints.py --db notables.sqlite
+
+      - name: Compute back-trajectories (weekly-ish)
+        working-directory: pipeline
+        if: github.event_name == 'workflow_dispatch' || github.run_number % 7 == 1
+        run: python3 tracks.py --db notables.sqlite
+
+      - name: eBird barchart frequencies (optional, set FREQUENCY_REGIONS var)
+        working-directory: pipeline
+        if: vars.FREQUENCY_REGIONS != ''
+        run: python3 frequency.py --db notables.sqlite --regions "$FREQUENCY_REGIONS"
+        env:
+          FREQUENCY_REGIONS: ${{ vars.FREQUENCY_REGIONS }}
 
       - name: Build forecast JSON + RSS feeds
         working-directory: pipeline
@@ -43,6 +60,13 @@ jobs:
       - name: Evaluate forecast skill
         working-directory: pipeline
         run: python3 evaluate.py --db notables.sqlite --out ../site/data
+
+      - name: Weekend digest webhook (Fridays; needs DIGEST_WEBHOOK secret)
+        working-directory: pipeline
+        env:
+          DIGEST_WEBHOOK: ${{ secrets.DIGEST_WEBHOOK }}
+          DIGEST_COUNTRIES: ${{ vars.DIGEST_COUNTRIES }}
+        run: python3 notify.py --data ../site/data
 
       - name: Commit updated data + db
         run: |
