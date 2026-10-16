@@ -32,6 +32,15 @@ jobs:
             echo "::warning::EBIRD_API_KEY secret not set — building from existing data only"
           fi
 
+      - name: Weekly gate (Mondays or manual runs)
+        id: weekly
+        run: |
+          if [ "$(date -u +%u)" = "1" ] || [ "${{ github.event_name }}" = "workflow_dispatch" ]; then
+            echo "yes=true" >> "$GITHUB_OUTPUT"
+          else
+            echo "yes=false" >> "$GITHUB_OUTPUT"
+          fi
+
       - name: Fetch recent notables (worldwide)
         working-directory: pipeline
         if: steps.key.outputs.haskey == 'true'
@@ -41,19 +50,19 @@ jobs:
 
       - name: Refresh hotspots + regions (weekly-ish)
         working-directory: pipeline
-        if: steps.key.outputs.haskey == 'true' && (github.event_name == 'workflow_dispatch' || github.run_number % 7 == 1)
+        if: steps.key.outputs.haskey == 'true' && steps.weekly.outputs.yes == 'true'
         env:
           EBIRD_API_KEY: ${{ secrets.EBIRD_API_KEY }}
         run: python3 fetch_reference.py --db notables.sqlite
 
       - name: Learn arrival wind fingerprints (weekly-ish)
         working-directory: pipeline
-        if: github.event_name == 'workflow_dispatch' || github.run_number % 7 == 1
+        if: steps.weekly.outputs.yes == 'true'
         run: python3 fingerprints.py --db notables.sqlite
 
       - name: Compute back-trajectories (weekly-ish)
         working-directory: pipeline
-        if: github.event_name == 'workflow_dispatch' || github.run_number % 7 == 1
+        if: steps.weekly.outputs.yes == 'true'
         run: python3 tracks.py --db notables.sqlite
 
       - name: eBird barchart frequencies (optional, set FREQUENCY_REGIONS var)
