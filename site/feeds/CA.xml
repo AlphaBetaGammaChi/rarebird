@@ -1,0 +1,15 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<rss version="2.0">
+<channel>
+  <title>Rarebird Forecast — CA</title>
+  <link>https://AlphaBetaGammaChi.github.io/rarebird?c=CA</link>
+  <description>Weekly rarity likelihood outlook for CA</description>
+  <item>
+    <title>CA rarity outlook — 2026-W42</title>
+    <link>https://AlphaBetaGammaChi.github.io/rarebird?c=CA</link>
+    <guid isPermaLink="false">rbf-CA-2026-W42</guid>
+    <pubDate>Fri, 16 Oct 2026 20:16:09 GMT</pubDate>
+    <description>1. Serpentine Fen — index 100<br>2. Calgary--South Glenmore Park — index 58<br>3. Victoria--Ogden Point Breakwater — index 39<br>4. RécréoParc (Côte-Ste-Catherine) — index 37<br>5. Tommy Thompson Nature Reserve — index 37<br><br>Species to watch: Red-throated Loon, Black Phoebe, Great Egret, Pacific Loon, Clay-colored Sparrow<br><br>Weather: storm day 1; storm day 6; storm day 7; strong winds day 1; strong winds day 2<br><br><i>Likelihood of a rarity report this week. Full map: https://AlphaBetaGammaChi.github.io/rarebird</i></description>
+  </item>
+</channel>
+</rss>

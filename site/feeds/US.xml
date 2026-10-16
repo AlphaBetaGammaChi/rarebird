@@ -1,0 +1,15 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<rss version="2.0">
+<channel>
+  <title>Rarebird Forecast — US</title>
+  <link>https://AlphaBetaGammaChi.github.io/rarebird?c=US</link>
+  <description>Weekly rarity likelihood outlook for US</description>
+  <item>
+    <title>US rarity outlook — 2026-W42</title>
+    <link>https://AlphaBetaGammaChi.github.io/rarebird?c=US</link>
+    <guid isPermaLink="false">rbf-US-2026-W42</guid>
+    <pubDate>Fri, 16 Oct 2026 20:34:34 GMT</pubDate>
+    <description>1. Central Park — index 100<br>2. American Fork Boat Harbor Area — index 87<br>3. Central Park--North End (N of 97th St. Transverse) — index 71<br>4. Prospect Park — index 64<br>5. Squantum--Squantum Point Park — index 55<br><br>Species to watch: Black-and-white Warbler, Red Crossbill, Evening Grosbeak, Sabine's Gull, Yellow-billed Cuckoo<br><br>Weather: storm day 1; strong winds day 1; strong winds day 2; strong winds day 3; strong winds day 4<br><br><i>Likelihood of a rarity report this week. Full map: https://AlphaBetaGammaChi.github.io/rarebird</i></description>
+  </item>
+</channel>
+</rss>

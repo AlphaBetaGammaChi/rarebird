@@ -1,0 +1,15 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<rss version="2.0">
+<channel>
+  <title>Rarebird Forecast — GB</title>
+  <link>https://AlphaBetaGammaChi.github.io/rarebird?c=GB</link>
+  <description>Weekly rarity likelihood outlook for GB</description>
+  <item>
+    <title>GB rarity outlook — 2026-W42</title>
+    <link>https://AlphaBetaGammaChi.github.io/rarebird?c=GB</link>
+    <guid isPermaLink="false">rbf-GB-2026-W42</guid>
+    <pubDate>Fri, 16 Oct 2026 20:20:10 GMT</pubDate>
+    <description>1. Staines Reservoirs — index 100<br>2. St Mary's--Porth Hellick Pool — index 58<br>3. St Mary's (General, please use more specific hotspot if possible) — index 51<br>4. WWT Slimbridge Wetland Centre — index 38<br>5. Farmoor Reservoir — index 37<br><br>Species to watch: Pectoral Sandpiper, Glossy Ibis, Great Egret, Red Phalarope, Sora<br><br>Weather: storm day 6; strong winds day 1; strong winds day 2; strong winds day 3; strong winds day 4<br><br><i>Likelihood of a rarity report this week. Full map: https://AlphaBetaGammaChi.github.io/rarebird</i></description>
+  </item>
+</channel>
+</rss>
