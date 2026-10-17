@@ -1,5 +1,5 @@
 {
-  "generated": "2026-10-16T20:36:24Z",
+  "generated": "2026-10-17T09:39:31Z",
   "countries": [
     "AE",
     "AG",
@@ -108,6 +108,7 @@
     "MX",
     "MY",
     "NA",
+    "NC",
     "NF",
     "NG",
     "NI",
@@ -170,5 +171,5 @@
     "ZM",
     "ZW"
   ],
-  "notables": 34813
+  "notables": 37939
 }
