@@ -1,9 +1,10 @@
 {
-  "generated": "2026-10-17T09:39:31Z",
+  "generated": "2026-10-18T10:00:39Z",
   "countries": [
     "AE",
     "AG",
     "AI",
+    "AM",
     "AO",
     "AR",
     "AS",
@@ -13,10 +14,12 @@
     "AZ",
     "BA",
     "BB",
+    "BD",
     "BE",
     "BF",
     "BG",
     "BM",
+    "BN",
     "BO",
     "BQ",
     "BR",
@@ -26,6 +29,7 @@
     "BY",
     "BZ",
     "CA",
+    "CG",
     "CH",
     "CL",
     "CN",
@@ -103,6 +107,7 @@
     "MN",
     "MO",
     "MP",
+    "MT",
     "MU",
     "MV",
     "MX",
@@ -133,6 +138,7 @@
     "QA",
     "RE",
     "RO",
+    "RS",
     "RU",
     "RW",
     "SA",
@@ -156,6 +162,7 @@
     "TW",
     "TZ",
     "UA",
+    "UG",
     "UM",
     "US",
     "UY",
@@ -171,5 +178,5 @@
     "ZM",
     "ZW"
   ],
-  "notables": 37939
+  "notables": 46942
 }
