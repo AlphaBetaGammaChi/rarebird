@@ -1,5 +1,5 @@
 {
-  "generated": "2026-10-21T10:29:49Z",
+  "generated": "2026-10-22T10:32:01Z",
   "countries": [
     "AE",
     "AG",
@@ -66,6 +66,7 @@
     "GG",
     "GH",
     "GI",
+    "GL",
     "GM",
     "GP",
     "GR",
@@ -184,5 +185,5 @@
     "ZM",
     "ZW"
   ],
-  "notables": 69615
+  "notables": 75273
 }
