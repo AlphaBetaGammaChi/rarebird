@@ -1,5 +1,5 @@
 {
-  "generated": "2026-10-22T10:32:01Z",
+  "generated": "2026-10-23T10:28:58Z",
   "countries": [
     "AE",
     "AG",
@@ -135,6 +135,7 @@
     "PK",
     "PL",
     "PM",
+    "PN",
     "PR",
     "PS",
     "PT",
@@ -147,6 +148,7 @@
     "RU",
     "RW",
     "SA",
+    "SB",
     "SC",
     "SD",
     "SE",
@@ -185,5 +187,5 @@
     "ZM",
     "ZW"
   ],
-  "notables": 75273
+  "notables": 81456
 }
