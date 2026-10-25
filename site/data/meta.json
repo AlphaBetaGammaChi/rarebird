@@ -1,5 +1,5 @@
 {
-  "generated": "2026-10-24T09:59:48Z",
+  "generated": "2026-10-25T10:19:06Z",
   "countries": [
     "AE",
     "AG",
@@ -108,6 +108,7 @@
     "MD",
     "ME",
     "MG",
+    "MK",
     "MM",
     "MN",
     "MO",
@@ -159,6 +160,7 @@
     "SJ",
     "SK",
     "SN",
+    "SR",
     "ST",
     "SV",
     "TC",
@@ -189,5 +191,5 @@
     "ZM",
     "ZW"
   ],
-  "notables": 88208
+  "notables": 96787
 }
